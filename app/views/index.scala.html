@@ -3,12 +3,12 @@
 @main(message) {
 
  <div id="viewport">
-	  <canvas id="me" width="500" height="300"></canvas>
 	  <canvas id="others" width="500" height="300"></canvas>
   </div>
   <div>
 	  <canvas id="controls" width="500" height="50"></canvas>
   </div>
+
   <script type="text/javascript">
      window.requestAnimFrame = (function(){
       return  window.requestAnimationFrame       || 
@@ -21,20 +21,6 @@
               };
               })();
 
- function offset (element) {
-    var top = 0, left = 0;
-    do {
-        top += element.offsetTop || 0;
-        left += element.offsetLeft || 0;
-        element = element.offsetParent;
-    } while(element);
-
-    return {
-        top: top,
-        left: left
-    };
-};
-
  // CONSTANTS
  var COLORS = ['red', 'blue', 'yellow', 'green', 'white'];
  var SIZES = [2, 5, 8, 10, 14];
@@ -42,6 +28,11 @@
  // STATES
  var color = COLORS[0];
  var size = SIZES[1];
+
+ if (!window.WebSocket) {
+    if (window.MozWebSocket)
+      window.WebSocket = window.MozWebSocket
+ }
 
  var socket = new WebSocket("ws://"+location.host+"/stream");
  var connected = false;
@@ -60,6 +51,38 @@ socket.onerror = function(evt) { console.error("error", evt); };
 
  var players = [];
  var isDrawing = [];
+ var pressed;
+
+ function positionWithE (e) {
+    var o = $(canvas).offset();
+    return { x: e.clientX-o.left, y: e.clientY-o.top };
+ }
+
+ function send (o) {
+   o.size = size;
+   o.color = color;
+   connected && socket.send(JSON.stringify(o));
+ }
+
+  canvas.addEventListener("mousedown", function (e) {
+    var o = positionWithE(e);
+    o.type = 'startLine';
+    send(o);
+    pressed = true;
+  });
+  canvas.addEventListener("mouseup", function (e) {
+    var o = positionWithE(e);
+    o.type = 'lineTo';
+    send(o);
+    send({ type: 'endLine' });
+    pressed = false;
+  });
+  canvas.addEventListener("mousemove", function (e) {
+    if (!pressed) return;
+    var o = positionWithE(e);
+    o.type = 'lineTo';
+    send(o);
+  });
 
   socket.onmessage = function (e) {
     var m = JSON.parse(e.data);
@@ -69,103 +92,24 @@ socket.onerror = function(evt) { console.error("error", evt); };
     }
    ctx.strokeStyle = m.color;
    ctx.lineWidth = m.size;
-   //ctx.beginPath();
    ctx.moveTo(player.x, player.y);
-   ctx.lineTo(m.x, m.y);
-   ctx.stroke();
+   switch (m.type) {
+    case "startLine": 
+      ctx.beginPath();
+      break;
+    case "lineTo":
+    case "endLine":
+      ctx.lineTo(m.x, m.y);
+      ctx.stroke();
+   }
    players[m.pid] = m;
  }
 
   var w = canvas.width, h = canvas.height;
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, w, h);
-
-}());
-
-(function(){
-
- var canvas = document.getElementById("me");
- var ctx = canvas.getContext("2d");
-
- var dirty;
- var pressed;
-
- function positionWithE (e) {
-    var o = offset(canvas);
-    return [ e.clientX-o.left, e.clientY-o.top ];
- }
-
- function syncColor () {
-    ctx.strokeStyle = color;
- }
- function syncSize () {
-    ctx.lineWidth = size;
- }
-
- function startLine (x, y) {
-   syncColor();
-   syncSize();
-   ctx.beginPath();
-   ctx.moveTo(x, y);
-   connected && socket.send(JSON.stringify({ type: 'startLine',  x: x, y: y, size: size, color: color }));
- }
-
- function lineTo (x, y) {
-   syncColor();
-   syncSize();
-   ctx.lineTo(x, y);
-   connected && socket.send(JSON.stringify({ type: 'lineTo',  x: x, y: y, size: size, color: color }));
- }
-
- function endLine () {
-   syncColor();
-   syncSize();
-   ctx.stroke();
-   connected && socket.send(JSON.stringify({ type: 'endLine', size: size, color: color }));
- }
-
- // setup variables
- function setup() {
-    dirty = true;
-
-    canvas.addEventListener("mousedown", function (e) {
-      var p = positionWithE(e);
-      startLine.apply(this, p);
-      pressed = true;
-      dirty = true;
-    });
-    canvas.addEventListener("mouseup", function (e) {
-      var p = positionWithE(e);
-      lineTo.apply(this, p);
-      endLine();
-      pressed = false;
-      dirty = true;
-    });
-    canvas.addEventListener("mousemove", function (e) {
-      if (!pressed) return;
-      var p = positionWithE(e);
-      lineTo.apply(this, p);
-      endLine();
-      dirty = true;
-    });
-
-   ctx.lineCap = 'round';
-   ctx.lineJoin = 'round';
- }
-
- // render loop
- function render() {
-   if (!dirty) return;
-   dirty = false;
-   var w = canvas.width, h = canvas.height;
-   var x, y, radius;
- }
-
- setup();
- requestAnimFrame(function loop(){
-   requestAnimFrame(loop);
-   render();
-  });
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
 }());
 
@@ -178,14 +122,10 @@ var BUTTON = 40;
 var RADIUS = 10;
 var SELECT = 4;
  
- function positionWithE (e) {
-    var o = offset(canvas);
-    return { x: e.clientX-o.left, y: e.clientY-o.top };
- }
-
 function setup() {
   canvas.addEventListener("click", function (e) {
-    var p = positionWithE (e);
+    var o = $(canvas).offset();
+    var p = { x: e.clientX-o.left, y: e.clientY-o.top };
     var i = Math.floor(p.x / BUTTON);
     if (i < COLORS.length) {
         color = COLORS[i];
