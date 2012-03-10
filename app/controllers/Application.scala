@@ -8,8 +8,9 @@ import play.api.libs.concurrent._
 
 object Application extends Controller {
 
-  var users = List[PushEnumerator[JsValue]]()
   var counter = 0
+  val hubEnum = Enumerator.imperative[JsValue]()
+  val hub = Concurrent.hub[JsValue](hubEnum)
   
   def index = Action {
     Ok(views.html.index("Play Painter"))
@@ -17,22 +18,15 @@ object Application extends Controller {
 
   def stream = WebSocket.async[JsValue] { request =>
     // Connected
-    val out = Enumerator.imperative[JsValue]()
-    users = List(out) ++ users
+    val out = hub.getPatchCord()
     counter += 1 
     val pid = counter
 
     val in = Iteratee.foreach[JsValue](_ match {
       case message: JsObject => {
-        // Forward for each users
-        users.foreach( (user) =>
-          user push ( message ++ JsObject(Seq("pid" -> JsNumber(pid)))  )
-        )
+        hubEnum push ( message ++ JsObject(Seq("pid" -> JsNumber(pid)))  )
       }
-    }) mapDone { _ =>
-      // Disconnected
-      users -= out
-    }
+    })
 
     Promise.pure( (in, out) )
   }
