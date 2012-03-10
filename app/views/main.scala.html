@@ -9,6 +9,13 @@
   <link rel="stylesheet" href="@routes.Assets.at("stylesheets/main.css")" />
 </head>
 <body>
-	@content
+  <div id="wrapper">
+    <div id="main">
+	    @content
+    </div>
+    <footer>
+      Play Painter - a <a href="http://playframework.org/">Play!</a> experiment by <a href="http://gaetanrenaudeau.fr/">Gaëtan Renaudeau</a> - 2012
+    </footer>
+  </div>
 </body>
 </html>
