@@ -134,7 +134,7 @@
 
   function positionWithE (e) {
     var o = $(canvas).offset();
-    return { x: e.clientX-o.left, y: e.clientY-o.top };
+    return { x: e.clientX-(o.left-$(window).scrollLeft()), y: e.clientY-(o.top-$(window).scrollTop()) };
   }
 
   function lineTo(x, y) {
