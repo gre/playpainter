@@ -18,9 +18,11 @@ object Application extends Controller {
 
   def stream = WebSocket.async[JsValue] { request =>
     // Connected
-    val out = hub.getPatchCord()
     counter += 1 
     val pid = counter
+    val out = Enumerator(
+      JsObject(Seq("type" -> JsString("youAre"), "pid" -> JsNumber(pid))).as[JsValue]
+    ).andThen(hub.getPatchCord())
 
     val in = Iteratee.foreach[JsValue](_ match {
       case message: JsObject => {

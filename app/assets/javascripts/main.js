@@ -1,5 +1,6 @@
 (function(){
 
+  // Polyfills
   window.requestAnimFrame = (function(){
   return  window.requestAnimationFrame       || 
           window.webkitRequestAnimationFrame || 
@@ -11,6 +12,11 @@
           };
           })();
 
+  if (!window.WebSocket) {
+    if (window.MozWebSocket)
+      window.WebSocket = window.MozWebSocket
+  }
+
   // CONSTANTS
   var COLORS = ['red', 'blue', 'yellow', 'green', 'white'];
   var SIZES = [2, 5, 8, 10, 14];
@@ -18,62 +24,61 @@
   // STATES
   var color = COLORS[0];
   var size = SIZES[1];
+  var pid;
+  var pname;
+  var myEventCount = [];
+  var localEventCount = [];
+  var meCtx;
+
+  // every player positions
+  var players = [];
+
+  var viewport = $('#viewport');
+
+  // Init pname
+  function queryPname() {
+    var n = prompt("What is your name?");
+    if (n) {
+      localStorage.setItem("pname", n);
+    }
+    return n || "Player "+Math.floor(1000*Math.random());
+  }
+  pname = localStorage.getItem("pname") || queryPname();
+  $('#pname').text(pname);
+  $('#pname_reset').click(function(e) {
+    e.preventDefault();
+    pname = queryPname();
+    $('#pname').text(pname);
+  });
 
 
   // WebSocket
-
-  if (!window.WebSocket) {
-    if (window.MozWebSocket)
-      window.WebSocket = window.MozWebSocket
-  }
   var socket = new WebSocket("ws://"+location.host+"/stream");
   var connected = false;
   socket.onopen = function(evt) { 
     connected = true;
+    send({ type: 'open', size: size, color: color, pname: pname });
   }
   socket.onclose = function(evt) { 
-    connected = false 
+    connected = false;
   };
   socket.onerror = function(evt) { console.error("error", evt); };
+
+
+  function send (o) {
+    // THESE ARE TEMPORARY, we need the server to store them, or replay everything
+    o.color = color; 
+    o.pname = pname;
+    o.size = size;
+
+    localEventCount[o.type] = (localEventCount[o.type] || 0) + 1;
+    connected && socket.send(JSON.stringify(o));
+  }
 
 
 (function(){
   var canvas = document.getElementById("draws");
   var ctx = canvas.getContext("2d");
-
-  var players = [];
-  var pressed;
-
-  function positionWithE (e) {
-    var o = $(canvas).offset();
-    return { x: e.clientX-o.left, y: e.clientY-o.top };
-  }
-
-  function send (o) {
-    o.size = size;
-    o.color = color;
-    connected && socket.send(JSON.stringify(o));
-  }
-
-  canvas.addEventListener("mousedown", function (e) {
-    var o = positionWithE(e);
-    o.type = 'startLine';
-    send(o);
-    pressed = true;
-  });
-  canvas.addEventListener("mouseup", function (e) {
-    var o = positionWithE(e);
-    o.type = 'lineTo';
-    send(o);
-    send({ type: 'endLine' });
-    pressed = false;
-  });
-  canvas.addEventListener("mousemove", function (e) {
-    if (!pressed) return;
-    var o = positionWithE(e);
-    o.type = 'lineTo';
-    send(o);
-  });
 
   socket.onmessage = function (e) {
     var m = JSON.parse(e.data);
@@ -81,6 +86,17 @@
     if (player === undefined) {
       player = players[m.pid] = m;
     }
+    if (m.type=="youAre") {
+      pid = m.pid;
+    }
+    if (m.pid == pid) {
+      myEventCount[m.type] = (myEventCount[m.type] || 0) + 1;
+    }
+
+    // clear local canvas if synchronized
+    if (m.type=="lineTo" && myEventCount[m.type] == localEventCount[m.type])
+        meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
+
     if (m.type == "lineTo" || m.type=="endLine") {
       ctx.strokeStyle = m.color;
       ctx.lineWidth = m.size;
@@ -89,7 +105,7 @@
       ctx.lineTo(m.x, m.y);
       ctx.stroke();
     }
-    players[m.pid] = m;
+    players[m.pid] = $.extend(players[m.pid], m);
   }
 
   var w = canvas.width, h = canvas.height;
@@ -98,6 +114,83 @@
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
+}());
+
+// "me" canvas is where you draw before the user sends your own events (before synchronization)
+(function(){
+  var canvas = document.getElementById("me");
+  var ctx = meCtx = canvas.getContext("2d");
+  var pressed;
+  var position;
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  function positionWithE (e) {
+    var o = $(canvas).offset();
+    return { x: e.clientX-o.left, y: e.clientY-o.top };
+  }
+
+  function lineTo(x, y) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = size;
+      ctx.beginPath();
+      ctx.moveTo(position.x, position.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+  }
+
+  viewport.on("mousedown", function (e) {
+    e.preventDefault();
+    var o = positionWithE(e);
+    position = o;
+    o.type = 'startLine';
+    send(o);
+    pressed = true;
+  });
+  viewport.on("mouseup", function (e) {
+    e.preventDefault();
+    var o = positionWithE(e);
+    o.type = 'lineTo';
+    lineTo(o.x, o.y);
+    position = o;
+    send(o);
+    send({ type: 'endLine' });
+    pressed = false;
+  });
+  viewport.on("mousemove", function (e) {
+    e.preventDefault();
+    var o = positionWithE(e);
+    o.type = pressed ? 'lineTo' : 'moveTo';
+    pressed && lineTo(o.x, o.y);
+    position = o;
+    send(o);
+  });
+}());
+
+(function(){
+  var canvas = document.getElementById("positions");
+  var ctx = canvas.getContext("2d");
+
+  ctx.font = "9px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  function render () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    players.forEach(function (player) {
+      ctx.beginPath();
+      ctx.strokeStyle = player.color;
+      ctx.arc(player.x, player.y, player.size/2, 0, 2*Math.PI);
+      ctx.stroke();
+      ctx.fillStyle = player.color;
+      ctx.fillText(player.pname, player.x, player.y-Math.round(player.size/2)-4);
+    });
+  }
+
+  requestAnimFrame(function loop () {
+    requestAnimFrame(loop);
+    render();
+  }, canvas);
 }());
 
 (function(){
@@ -116,11 +209,13 @@
       var i = Math.floor(p.x / BUTTON);
       if (i < COLORS.length) {
         color = COLORS[i];
+        send({ type: 'changeColor', color: color });
       }
       else {
         i -= COLORS.length;
         if ( i < SIZES.length) {
           size = SIZES[i];
+          send({ type: 'changeSize', size: size });
         }
       }
       dirty = true;

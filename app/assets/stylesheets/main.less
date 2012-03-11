@@ -15,16 +15,60 @@ a {
     }
 }
 
+#viewport {
+    width: 500px;
+    height: 300px;
+    position: relative;
+    canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+}
+
+#positions {
+  z-index: 8;
+}
+#me {
+  z-index: 6;
+}
+#draws {
+  z-index: 4;
+}
+
+.playername {
+    float: right;
+    .name, .remove {
+      padding: 1px 3px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    .name {
+      background: black;
+      color: white;
+    }
+    .remove {
+      cursor: pointer;
+      background: #c00;
+      color: white;
+      text-decoration: none;
+      &:hover {
+        background: #f00;
+      }
+    }
+}
+
 #wrapper {
-    width: 600px;
-    text-align: center;
-    margin: 0px auto;
+    margin: 0px 20px;
+    min-width: 700px;
 }
 
 #main {
-    margin: 20px 0px;
+    margin: 20px auto;
+    width: 500px;
 }
 
-
 footer {
+    text-align: center;
 }
