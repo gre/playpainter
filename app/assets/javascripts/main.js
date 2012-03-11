@@ -41,9 +41,9 @@
     if (n) {
       localStorage.setItem("pname", n);
     }
-    return n || "Player "+Math.floor(1000*Math.random());
+    return n || pname;
   }
-  pname = localStorage.getItem("pname") || queryPname();
+  pname = localStorage.getItem("pname") || "Player "+Math.floor(1000*Math.random());
   $('#pname').text(pname);
   $('#pname_reset').click(function(e) {
     e.preventDefault();
