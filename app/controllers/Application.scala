@@ -24,11 +24,15 @@ object Application extends Controller {
       JsObject(Seq("type" -> JsString("youAre"), "pid" -> JsNumber(pid))).as[JsValue]
     ).andThen(hub.getPatchCord())
 
+    hubEnum push JsObject(Seq("type" -> JsString("connect"), "pid" -> JsNumber(pid))).as[JsValue]
+
     val in = Iteratee.foreach[JsValue](_ match {
       case message: JsObject => {
         hubEnum push ( message ++ JsObject(Seq("pid" -> JsNumber(pid)))  )
       }
-    })
+    }) mapDone { _ =>
+      hubEnum push JsObject(Seq("type" -> JsString("disconnect"), "pid" -> JsNumber(pid))).as[JsValue]
+    }
 
     Promise.pure( (in, out) )
   }

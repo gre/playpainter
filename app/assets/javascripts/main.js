@@ -31,7 +31,7 @@
   var meCtx;
 
   // every player positions
-  var players = [];
+  var players = {};
 
   var viewport = $('#viewport');
 
@@ -48,6 +48,7 @@
   $('#pname_reset').click(function(e) {
     e.preventDefault();
     pname = queryPname();
+    send({ type: 'changeName', pname: pname });
     $('#pname').text(pname);
   });
 
@@ -91,6 +92,11 @@
     }
     if (m.pid == pid) {
       myEventCount[m.type] = (myEventCount[m.type] || 0) + 1;
+    }
+
+    if (m.type == "disconnect") {
+      delete players[m.pid];
+      return;
     }
 
     // clear local canvas if synchronized
@@ -177,14 +183,15 @@
   ctx.textBaseline = "bottom";
   function render () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    players.forEach(function (player) {
+    for (var pid in players) { var player = players[pid];
+      if (!player) return;
       ctx.beginPath();
       ctx.strokeStyle = player.color;
       ctx.arc(player.x, player.y, player.size/2, 0, 2*Math.PI);
       ctx.stroke();
       ctx.fillStyle = player.color;
-      ctx.fillText(player.pname, player.x, player.y-Math.round(player.size/2)-4);
-    });
+      ctx.fillText((player.pname+"").substring(0,20), player.x, player.y-Math.round(player.size/2)-4);
+    }
   }
 
   requestAnimFrame(function loop () {
