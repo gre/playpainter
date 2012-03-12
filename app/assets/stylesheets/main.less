@@ -2,6 +2,7 @@ body {
   padding: 0;
   margin: 0;
   color: #666;
+
   background: #8adc92;
   background: #000 -webkit-gradient(linear, left bottom, right top, from(#B3E862), to(#73dac1));
   background: #000 -moz-linear-gradient(left bottom, #B3E862, #73dac1);
@@ -19,6 +20,7 @@ a {
 #viewport {
     width: 500px;
     height: 300px;
+    background: white;
     position: relative;
     canvas {
         position: absolute;
@@ -50,14 +52,10 @@ a {
     .name {
       background: black;
       color: white;
-    }
-    .remove {
       cursor: pointer;
-      background: #c00;
-      color: white;
-      text-decoration: none;
       &:hover {
-        background: #f00;
+        text-decoration: underline;
+      background: #333;
       }
     }
 }

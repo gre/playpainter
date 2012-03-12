@@ -17,6 +17,8 @@
       window.WebSocket = window.MozWebSocket
   }
 
+  var insideIframe = (window.parent != window);
+
   // CONSTANTS
   var COLORS = ['red', 'blue', 'yellow', 'green', 'white'];
   var SIZES = [2, 5, 8, 10, 14];
@@ -43,14 +45,21 @@
     }
     return n || pname;
   }
-  pname = localStorage.getItem("pname") || "Player "+Math.floor(1000*Math.random());
-  $('#pname').text(pname);
-  $('#pname_reset').click(function(e) {
+  pname = localStorage.getItem("pname");
+  if (!insideIframe && !pname) {
+     pname = queryPname();
+  }
+  if (!pname) {
+    pname = "user"+Math.floor(100*Math.random())
+  }
+
+  $('#pname').text(pname).click(function(e) {
     e.preventDefault();
     pname = queryPname();
     send({ type: 'changeName', pname: pname });
     $('#pname').text(pname);
   });
+
 
 
   // WebSocket
