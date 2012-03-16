@@ -231,11 +231,6 @@
 
   function onMouseUp (e) {
     e.preventDefault();
-    var o = positionWithE(e);
-    o.type = 'lineTo';
-    lineTo(o.x, o.y);
-    position = o;
-    send(o);
     send({ type: 'endLine' });
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     pressed = false;
@@ -305,7 +300,6 @@
   }
 
   function handleKeyDown (e) {
-    console.log(e.keyCode)
     switch(e.keyCode) {
       case COLOR_PREV:
         color = COLORS[ COLORS.indexOf(color)-1 ] || COLORS[COLORS.length-1];
