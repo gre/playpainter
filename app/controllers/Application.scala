@@ -47,10 +47,12 @@ case class PaintRoom(name: String) {
   val hub = Concurrent.hub[JsValue](hubEnum)
 
   private var counter = 0
+  private var connections = 0
 
   // Create a new painter and get a (input, output) couple for him
   def createPainter(): (Iteratee[JsValue, _], Enumerator[JsValue]) = {
     counter += 1
+    connections += 1
     val pid = counter // the painter id
 
     // out: handle messages to send to the painter
@@ -84,13 +86,14 @@ case class PaintRoom(name: String) {
     }) mapDone { _ => 
       // User has disconnected.
       painters -= pid
+      connections -= 1
       hubEnum push (JsObject(Seq("type" -> JsString("disconnect"), "pid" -> JsNumber(pid))))
       Logger.debug("(pid:"+pid+") disconnected.")
-      Logger.info(painters.size+" painter(s) currently connected.");
+      Logger.info(connections+" painter(s) currently connected.");
     }
 
-    Logger.info(painters.size+" painter(s) currently connected.");
     Logger.debug("(pid:"+pid+") connected.")
+    Logger.info(connections+" painter(s) currently connected.");
 
     // Return the painter input and output
     (in, out)
