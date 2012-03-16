@@ -78,8 +78,6 @@
     $('#pname').text(pname);
   });
 
-
-
   // WebSocket
   var socket;
   var connected = false;
@@ -284,6 +282,8 @@
   var RADIUS = 10;
   var SELECT = 4;
 
+  var COLOR_PREV = 37, SIZE_UP = 38, COLOR_NEXT = 39, SIZE_DOWN = 40;
+
   function setup() {
     canvas.addEventListener("click", function (e) {
       var o = $(canvas).offset();
@@ -303,6 +303,34 @@
       dirty = true;
     });
   }
+
+  function handleKeyDown (e) {
+    console.log(e.keyCode)
+    switch(e.keyCode) {
+      case COLOR_PREV:
+        color = COLORS[ COLORS.indexOf(color)-1 ] || COLORS[COLORS.length-1];
+        break;
+      case COLOR_NEXT:
+        color = COLORS[ COLORS.indexOf(color)+1 ] || COLORS[0];
+        break;
+      case SIZE_UP:
+        size = SIZES[ SIZES.indexOf(size)+1 ] || SIZES[SIZES.length-1];
+        break;
+      case SIZE_DOWN:
+        size = SIZES[ SIZES.indexOf(size)-1 ] || SIZES[0];
+        break;
+      default:
+        return false;
+    }
+    dirty = true;
+    return true;
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if(handleKeyDown(e)) {
+      e.preventDefault();
+    }
+  });
 
   function render() {
     if (!dirty) return;
