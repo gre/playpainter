@@ -1,5 +1,12 @@
 (function(){
 
+  function removeError () {
+    $('#error').fadeOut(500);
+  }
+  function setError (message) {
+    $('#error').empty().append($('<span class="error" />').text(message)).fadeIn(500);
+  }
+
   // Polyfills
   window.requestAnimFrame = (function(){
   return  window.requestAnimationFrame       || 
@@ -17,7 +24,18 @@
       window.WebSocket = window.MozWebSocket
   }
 
+  if (!window.WebSocket) {
+    setError("WebSocket is not supported by your browser.");
+    return;
+  }
+
+  if (!(function(e){ return e.getContext && e.getContext('2d') }(document.getElementById("me")))) {
+    setError("Canvas is not supported by your browser.");
+    return;
+  }
+
   var insideIframe = (window.parent != window);
+  var isMobile = /ipad|iphone|android/i.test(navigator.userAgent)
 
   // CONSTANTS
   var COLORS = ['red', 'blue', 'yellow', 'green', 'white'];
@@ -28,14 +46,14 @@
   var size = SIZES[1];
   var pid;
   var pname;
-  var myEventCount = [];
-  var localEventCount = [];
+  var receivedEventsCount = [];
+  var sentEventsCount = [];
   var meCtx;
 
   // every player positions
   var players = {};
 
-  var viewport = $('#viewport');
+  var viewport = document.getElementById('viewport');
 
   // Init pname
   function queryPname() {
@@ -63,17 +81,44 @@
 
 
   // WebSocket
-  var socket = new WebSocket("ws://"+location.host+"/stream");
+  var socket;
   var connected = false;
-  socket.onopen = function(evt) { 
-    connected = true;
-    send({ type: 'open', size: size, color: color, pname: pname });
-  }
-  socket.onclose = function(evt) { 
-    connected = false;
-  };
-  socket.onerror = function(evt) { console.error("error", evt); };
 
+  var reconnectInterval = 1000;
+  var reconnection = false;
+
+  function tryConnectAgain () {
+    reconnection = true;
+    setError("WebSocket connection is down. reconnecting...");
+    setTimeout(function() {
+      reconnectInterval *= 1.5;
+      connect();
+    }, reconnectInterval);
+  }
+
+  function connect () {
+    try {
+      socket = new WebSocket("ws://"+location.host+"/stream");
+      socket.onopen = function(evt) {
+        if (reconnection) {
+          window.location = window.location; // Reloading the page to reset states
+          return;
+        }
+        connected = true;
+        send({ type: 'open', size: size, color: color, pname: pname });
+      }
+      socket.onclose = function(evt) { 
+        connected = false;
+        tryConnectAgain();
+      };
+      socket.onerror = function(evt) { console.error("error", evt); };
+    }
+    catch (e) {
+      setError("WebSocket connection failed.");
+    }
+  }
+
+  connect();
 
   function send (o) {
     // THESE ARE TEMPORARY, we need the server to store them, or replay everything
@@ -81,7 +126,7 @@
     o.pname = pname;
     o.size = size;
 
-    localEventCount[o.type] = (localEventCount[o.type] || 0) + 1;
+    sentEventsCount[o.type] = (sentEventsCount[o.type] || 0) + 1;
     connected && socket.send(JSON.stringify(o));
   }
 
@@ -100,7 +145,7 @@
       pid = m.pid;
     }
     if (m.pid == pid) {
-      myEventCount[m.type] = (myEventCount[m.type] || 0) + 1;
+      receivedEventsCount[m.type] = (receivedEventsCount[m.type] || 0) + 1;
     }
 
     if (m.type == "disconnect") {
@@ -109,7 +154,7 @@
     }
 
     // clear local canvas if synchronized
-    if (m.type=="lineTo" && myEventCount[m.type] == localEventCount[m.type])
+    if (m.type=="lineTo" && sentEventsCount[m.type] <= receivedEventsCount[m.type])
         meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
 
     if (m.type == "lineTo" || m.type=="endLine") {
@@ -143,7 +188,15 @@
 
   function positionWithE (e) {
     var o = $(canvas).offset();
-    return { x: e.clientX-(o.left-$(window).scrollLeft()), y: e.clientY-(o.top-$(window).scrollTop()) };
+    var x = e.clientX, y = e.clientY;
+    if (e.touches) {
+      var touch = e.touches[0];
+      if (touch) {
+        x = touch.pageX;
+        y = touch.pageY;
+      }
+    }
+    return { x: x-(o.left-$(window).scrollLeft()), y: y-(o.top-$(window).scrollTop()) };
   }
 
   function lineTo(x, y) {
@@ -155,15 +208,30 @@
       ctx.stroke();
   }
 
-  viewport.on("mousedown", function (e) {
+  function onMouseMove (e) {
+    e.preventDefault();
+    var o = positionWithE(e);
+    if (pressed) {
+      o.type = 'lineTo';
+      lineTo(o.x, o.y);
+    }
+    else {
+      o.type = 'moveTo';
+    }
+    position = o;
+    send(o);
+  }
+
+  function onMouseDown (e) {
     e.preventDefault();
     var o = positionWithE(e);
     position = o;
     o.type = 'startLine';
     send(o);
     pressed = true;
-  });
-  viewport.on("mouseup", function (e) {
+  }
+
+  function onMouseUp (e) {
     e.preventDefault();
     var o = positionWithE(e);
     o.type = 'lineTo';
@@ -171,16 +239,14 @@
     position = o;
     send(o);
     send({ type: 'endLine' });
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     pressed = false;
-  });
-  viewport.on("mousemove", function (e) {
-    e.preventDefault();
-    var o = positionWithE(e);
-    o.type = pressed ? 'lineTo' : 'moveTo';
-    pressed && lineTo(o.x, o.y);
-    position = o;
-    send(o);
-  });
+  }
+
+  viewport.addEventListener(isMobile ? "touchstart": "mousedown", onMouseDown);
+  viewport.addEventListener(isMobile ? "touchend"  : "mouseup",   onMouseUp);
+  viewport.addEventListener(isMobile ? "touchmove" : "mousemove", onMouseMove);
+
 }());
 
 (function(){
@@ -193,7 +259,7 @@
   function render () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (var pid in players) { var player = players[pid];
-      if (!player) return;
+      if (!player || player.x===undefined) return;
       ctx.beginPath();
       ctx.strokeStyle = player.color;
       ctx.arc(player.x, player.y, player.size/2, 0, 2*Math.PI);
