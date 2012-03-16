@@ -68,13 +68,13 @@
      pname = queryPname();
   }
   if (!pname) {
-    pname = "user"+Math.floor(100*Math.random())
+    pname = "iam"+Math.floor(100*Math.random())
   }
 
   $('#pname').text(pname).click(function(e) {
     e.preventDefault();
     pname = queryPname();
-    send({ type: 'changeName', pname: pname });
+    send({ type: 'change', name: pname });
     $('#pname').text(pname);
   });
 
@@ -103,7 +103,7 @@
           return;
         }
         connected = true;
-        send({ type: 'open', size: size, color: color, pname: pname });
+        send({ type: 'change', size: size, color: color, name: pname });
       }
       socket.onclose = function(evt) { 
         connected = false;
@@ -119,11 +119,6 @@
   connect();
 
   function send (o) {
-    // THESE ARE TEMPORARY, we need the server to store them, or replay everything
-    o.color = color; 
-    o.pname = pname;
-    o.size = size;
-
     sentEventsCount[o.type] = (sentEventsCount[o.type] || 0) + 1;
     connected && socket.send(JSON.stringify(o));
   }
@@ -156,8 +151,8 @@
         meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
 
     if (m.type == "lineTo" || m.type=="endLine") {
-      ctx.strokeStyle = m.color;
-      ctx.lineWidth = m.size;
+      ctx.strokeStyle = player.color;
+      ctx.lineWidth = player.size;
       ctx.beginPath();
       ctx.moveTo(player.x, player.y);
       ctx.lineTo(m.x, m.y);
@@ -174,7 +169,7 @@
 
 }());
 
-// "me" canvas is where you draw before the user sends your own events (before synchronization)
+// "me" canvas is where you draw before the painter sends your own events (before synchronization)
 (function(){
   var canvas = document.getElementById("me");
   var ctx = meCtx = canvas.getContext("2d");
@@ -258,7 +253,7 @@
       ctx.arc(player.x, player.y, player.size/2, 0, 2*Math.PI);
       ctx.stroke();
       ctx.fillStyle = player.color;
-      ctx.fillText((player.pname+"").substring(0,20), player.x, player.y-Math.round(player.size/2)-4);
+      ctx.fillText((player.name+"").substring(0,20), player.x, player.y-Math.round(player.size/2)-4);
     }
   }
 
@@ -286,13 +281,13 @@
       var i = Math.floor(p.x / BUTTON);
       if (i < COLORS.length) {
         color = COLORS[i];
-        send({ type: 'changeColor', color: color });
+        send({ type: 'change', color: color });
       }
       else {
         i -= COLORS.length;
         if ( i < SIZES.length) {
           size = SIZES[i];
-          send({ type: 'changeSize', size: size });
+          send({ type: 'change', size: size });
         }
       }
       dirty = true;
