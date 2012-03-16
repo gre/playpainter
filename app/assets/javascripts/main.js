@@ -40,6 +40,7 @@
   // CONSTANTS
   var COLORS = ['red', 'blue', 'yellow', 'green', 'white'];
   var SIZES = [2, 5, 8, 10, 14];
+  var MIN_SEND_RATE = 50; // the min interval in ms between 2 send
 
   // STATES
   var color = COLORS[0];
@@ -49,6 +50,8 @@
   var receivedEventsCount = [];
   var sentEventsCount = [];
   var meCtx;
+
+  var dirty_positions = false;
 
   // every player positions
   var players = {};
@@ -147,18 +150,25 @@
     }
 
     // clear local canvas if synchronized
-    if (m.type=="lineTo" && sentEventsCount[m.type] <= receivedEventsCount[m.type])
+    if (m.type=="trace" && sentEventsCount[m.type] <= receivedEventsCount[m.type])
         meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
 
-    if (m.type == "lineTo" || m.type=="endLine") {
+    if (m.type == "trace") {
       ctx.strokeStyle = player.color;
       ctx.lineWidth = player.size;
       ctx.beginPath();
-      ctx.moveTo(player.x, player.y);
-      ctx.lineTo(m.x, m.y);
+      var points = m.points;
+      ctx.moveTo(points[0].x, points[0].y);
+      points.forEach(function (p) {
+        ctx.lineTo(p.x, p.y);
+      });
       ctx.stroke();
+      m.x = points[points.length-1].x;
+      m.y = points[points.length-1].y;
     }
     players[m.pid] = $.extend(players[m.pid], m);
+
+    dirty_positions = true;
   }
 
   var w = canvas.width, h = canvas.height;
@@ -175,6 +185,26 @@
   var ctx = meCtx = canvas.getContext("2d");
   var pressed;
   var position;
+
+  var points = [];
+  var lastSent = 0;
+
+  function addPoint (x, y) {
+    points.push({ x: x, y: y });
+  }
+  function sendPoints () {
+    lastSent = +new Date();
+    send({ type: "trace", points: points });
+    points = [];
+  }
+  function sendMove (x, y) {
+    lastSent = +new Date();
+    send({ type: "move", x: x, y: y });
+  }
+
+  function canSendNow () {
+    return +new Date() - lastSent > MIN_SEND_RATE;
+  }
 
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -205,28 +235,32 @@
     e.preventDefault();
     var o = positionWithE(e);
     if (pressed) {
-      o.type = 'lineTo';
-      lineTo(o.x, o.y);
+      addPoint(o.x, o.y);
+      if (canSendNow()) {
+        sendPoints();
+        addPoint(o.x, o.y);
+      }
     }
     else {
-      o.type = 'moveTo';
+      if (canSendNow()) {
+        sendMove(o.x, o.y);
+      }
     }
     position = o;
-    send(o);
   }
 
   function onMouseDown (e) {
     e.preventDefault();
     var o = positionWithE(e);
     position = o;
-    o.type = 'startLine';
-    send(o);
+    addPoint(o.x, o.y);
     pressed = true;
   }
 
   function onMouseUp (e) {
     e.preventDefault();
-    send({ type: 'endLine' });
+    addPoint(position.x, position.y);
+    sendPoints();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     pressed = false;
   }
@@ -245,6 +279,8 @@
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
   function render () {
+    if(!dirty_positions) return;
+    dirty_positions = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (var pid in players) { var player = players[pid];
       if (!player || player.x===undefined) return;
