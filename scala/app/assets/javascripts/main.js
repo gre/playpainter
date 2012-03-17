@@ -261,6 +261,7 @@
     lineTo(position.x, position.y);
     addPoint(position.x, position.y);
     sendPoints();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     pressed = false;
   }
 
