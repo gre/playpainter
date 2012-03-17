@@ -49,8 +49,7 @@
   var pname;
   var meCtx;
 
-  var lastMessageSendByType = {};
-  var lastMyMessageReceivedByType = {};
+  var numTrace = 0;
 
   var dirty_positions = false;
 
@@ -124,7 +123,6 @@
 
   function send (o) {
     if (!connected) return;
-    lastMessageSendByType[o.type] = +new Date();
     socket.send(JSON.stringify(o));
   }
 
@@ -142,9 +140,6 @@
     if (m.type=="youAre") {
       pid = m.pid;
     }
-    if (m.pid == pid) {
-      lastMyMessageReceivedByType[m.type] = +new Date();
-    }
 
     if (m.type == "disconnect") {
       delete players[m.pid];
@@ -152,7 +147,7 @@
     }
 
     // clear local canvas if synchronized
-    if (m.type=="trace" && lastMessageSendByType[m.type] <= lastMyMessageReceivedByType[m.type]) {
+    if (m.pid==pid && m.type=="trace" && numTrace == m.num) {
       meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
     }
 
@@ -197,7 +192,7 @@
   }
   function sendPoints () {
     lastSent = +new Date();
-    send({ type: "trace", points: points });
+    send({ type: "trace", points: points, num: (++numTrace) });
     points = [];
   }
   function sendMove (x, y) {
