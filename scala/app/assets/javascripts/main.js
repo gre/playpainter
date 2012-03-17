@@ -190,7 +190,7 @@
   }
   function sendPoints () {
     lastSent = +new Date();
-    send({ type: "trace", points: points, num: (numTrace ++) });
+    send({ type: "trace", points: points, num: numTrace });
     points = [];
   }
   function sendMove (x, y) {
@@ -233,6 +233,7 @@
     if (pressed) {
       lineTo(o.x, o.y);
       addPoint(o.x, o.y);
+      ++ numTrace;
       if (canSendNow()) {
         sendPoints();
         addPoint(o.x, o.y);
@@ -259,12 +260,12 @@
     lineTo(position.x, position.y);
     addPoint(position.x, position.y);
     sendPoints();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    //ctx.clearRect(0, 0, canvas.width, canvas.height);
     pressed = false;
   }
 
   viewport.addEventListener(isMobile ? "touchstart": "mousedown", onMouseDown);
-  viewport.addEventListener(isMobile ? "touchend"  : "mouseup",   onMouseUp);
+  document.addEventListener(isMobile ? "touchend"  : "mouseup",   onMouseUp);
   viewport.addEventListener(isMobile ? "touchmove" : "mousemove", onMouseMove);
 
 }());
