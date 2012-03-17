@@ -47,9 +47,10 @@
   var size = SIZES[1];
   var pid;
   var pname;
-  var receivedEventsCount = [];
-  var sentEventsCount = [];
   var meCtx;
+
+  var lastMessageSendByType = {};
+  var lastMyMessageReceivedByType = {};
 
   var dirty_positions = false;
 
@@ -122,8 +123,9 @@
   connect();
 
   function send (o) {
-    sentEventsCount[o.type] = (sentEventsCount[o.type] || 0) + 1;
-    connected && socket.send(JSON.stringify(o));
+    if (!connected) return;
+    lastMessageSendByType[o.type] = +new Date();
+    socket.send(JSON.stringify(o));
   }
 
 
@@ -141,7 +143,7 @@
       pid = m.pid;
     }
     if (m.pid == pid) {
-      receivedEventsCount[m.type] = (receivedEventsCount[m.type] || 0) + 1;
+      lastMyMessageReceivedByType[m.type] = +new Date();
     }
 
     if (m.type == "disconnect") {
@@ -150,8 +152,9 @@
     }
 
     // clear local canvas if synchronized
-    if (m.type=="trace" && sentEventsCount[m.type] <= receivedEventsCount[m.type])
-        meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
+    if (m.type=="trace" && lastMessageSendByType[m.type] <= lastMyMessageReceivedByType[m.type]) {
+      meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
+    }
 
     if (m.type == "trace") {
       ctx.strokeStyle = player.color;
@@ -235,6 +238,7 @@
     e.preventDefault();
     var o = positionWithE(e);
     if (pressed) {
+      lineTo(o.x, o.y);
       addPoint(o.x, o.y);
       if (canSendNow()) {
         sendPoints();
