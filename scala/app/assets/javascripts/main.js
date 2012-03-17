@@ -50,7 +50,7 @@
   var meCtx;
 
   var numTrace = 1;
-  var onmessage = function(){}
+  var onSocketMessage;
   var dirty_positions = false;
 
   // every player positions
@@ -100,7 +100,7 @@
   function connect () {
     try {
       socket = new WebSocket("ws://"+location.host+"/stream");
-      socket.onmessage = onmessage;
+      socket.onmessage = onSocketMessage;
       socket.onopen = function(evt) {
         if (reconnection) {
           window.location = window.location; // Reloading the page to reset states
@@ -130,40 +130,39 @@
   var canvas = document.getElementById("draws");
   var ctx = canvas.getContext("2d");
 
-  onmessage = function (e) {
+  onSocketMessage = function (e) {
     var m = JSON.parse(e.data);
     var player = players[m.pid];
     if (player === undefined) {
       player = players[m.pid] = m;
     }
-    if (m.type=="youAre") {
-      pid = m.pid;
-    }
+    if (m.type=="youAre") pid = m.pid;
+    
+    if (m.type != "disconnect") {
+      if (m.type == "trace") {
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = player.size;
+        ctx.beginPath();
+        var points = m.points;
+        ctx.moveTo(player.x, player.y);
+        points.forEach(function (p) {
+          ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+        m.x = points[points.length-1].x;
+        m.y = points[points.length-1].y;
 
-    if (m.type == "disconnect") {
+        // clear local canvas if synchronized
+        if (m.pid==pid && numTrace == m.num) {
+          meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
+        }
+      }
+
+      players[m.pid] = $.extend(players[m.pid], m);
+    }
+    else {
       delete players[m.pid];
-      return;
     }
-
-    // clear local canvas if synchronized
-    if (m.pid==pid && m.type=="trace" && numTrace == m.num) {
-      meCtx.clearRect(0,0,meCtx.canvas.width,meCtx.canvas.height);
-    }
-
-    if (m.type == "trace") {
-      ctx.strokeStyle = player.color;
-      ctx.lineWidth = player.size;
-      ctx.beginPath();
-      var points = m.points;
-      ctx.moveTo(points[0].x, points[0].y);
-      points.forEach(function (p) {
-        ctx.lineTo(p.x, p.y);
-      });
-      ctx.stroke();
-      m.x = points[points.length-1].x;
-      m.y = points[points.length-1].y;
-    }
-    players[m.pid] = $.extend(players[m.pid], m);
 
     dirty_positions = true;
   }
@@ -309,20 +308,27 @@
 
   var COLOR_PREV = 37, SIZE_UP = 38, COLOR_NEXT = 39, SIZE_DOWN = 40;
 
+  function setColor (c) {
+    color = c;
+    send({ type: 'change', color: color });
+  }
+  function setSize (s) {
+    size = s;
+    send({ type: 'change', size: size });
+  }
+
   function setup() {
     canvas.addEventListener("click", function (e) {
       var o = $(canvas).offset();
       var p = { x: e.clientX-o.left, y: e.clientY-o.top };
       var i = Math.floor(p.x / BUTTON);
       if (i < COLORS.length) {
-        color = COLORS[i];
-        send({ type: 'change', color: color });
+        setColor(COLORS[i]);
       }
       else {
         i -= COLORS.length;
         if ( i < SIZES.length) {
-          size = SIZES[i];
-          send({ type: 'change', size: size });
+          setSize(SIZES[i]);
         }
       }
       dirty = true;
@@ -332,26 +338,26 @@
   function handleKeyDown (e) {
     switch(e.keyCode) {
       case COLOR_PREV:
-        color = COLORS[ COLORS.indexOf(color)-1 ] || COLORS[COLORS.length-1];
+        setColor( COLORS[ COLORS.indexOf(color)-1 ] || COLORS[COLORS.length-1] );
         break;
       case COLOR_NEXT:
-        color = COLORS[ COLORS.indexOf(color)+1 ] || COLORS[0];
+        setColor( COLORS[ COLORS.indexOf(color)+1 ] || COLORS[0] );
         break;
       case SIZE_UP:
-        size = SIZES[ SIZES.indexOf(size)+1 ] || SIZES[SIZES.length-1];
+        setSize( SIZES[ SIZES.indexOf(size)+1 ] || SIZES[SIZES.length-1] );
         break;
       case SIZE_DOWN:
-        size = SIZES[ SIZES.indexOf(size)-1 ] || SIZES[0];
+        setSize( SIZES[ SIZES.indexOf(size)-1 ] || SIZES[0] );
         break;
       default:
         return false;
     }
-    dirty = true;
     return true;
   }
 
   document.addEventListener("keydown", function (e) {
     if(handleKeyDown(e)) {
+      dirty = true;
       e.preventDefault();
     }
   });
