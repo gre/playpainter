@@ -92,7 +92,7 @@
     reconnection = true;
     setError("WebSocket connection is down. reconnecting...");
     setTimeout(function() {
-      reconnectInterval *= 1.5;
+      reconnectInterval *= (1.5+0.2*Math.random());
       connect();
     }, reconnectInterval);
   }
