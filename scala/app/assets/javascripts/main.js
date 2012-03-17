@@ -49,7 +49,7 @@
   var pname;
   var meCtx;
 
-  var numTrace = 0;
+  var numTrace = 1;
 
   var dirty_positions = false;
 
@@ -192,7 +192,7 @@
   }
   function sendPoints () {
     lastSent = +new Date();
-    send({ type: "trace", points: points, num: (++numTrace) });
+    send({ type: "trace", points: points, num: (numTrace ++) });
     points = [];
   }
   function sendMove (x, y) {
@@ -258,6 +258,7 @@
 
   function onMouseUp (e) {
     e.preventDefault();
+    lineTo(position.x, position.y);
     addPoint(position.x, position.y);
     sendPoints();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
