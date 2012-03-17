@@ -50,7 +50,7 @@
   var meCtx;
 
   var numTrace = 1;
-
+  var onmessage = function(){}
   var dirty_positions = false;
 
   // every player positions
@@ -100,6 +100,7 @@
   function connect () {
     try {
       socket = new WebSocket("ws://"+location.host+"/stream");
+      socket.onmessage = onmessage;
       socket.onopen = function(evt) {
         if (reconnection) {
           window.location = window.location; // Reloading the page to reset states
@@ -119,8 +120,6 @@
     }
   }
 
-  connect();
-
   function send (o) {
     if (!connected) return;
     socket.send(JSON.stringify(o));
@@ -131,7 +130,7 @@
   var canvas = document.getElementById("draws");
   var ctx = canvas.getContext("2d");
 
-  socket.onmessage = function (e) {
+  onmessage = function (e) {
     var m = JSON.parse(e.data);
     var player = players[m.pid];
     if (player === undefined) {
@@ -411,4 +410,5 @@
 
 }());
 
+  connect();
 }());
