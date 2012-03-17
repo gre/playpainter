@@ -1,5 +1,12 @@
 **playpainter** is a multi-user real-time "Paint"-like web experiment made with Play 2 framework and relying on HTML Canvas and WebSocket.
 
+Scala/Java version
+==================
+
+For the moment, we only have the Scala version but I would love to have a Java version as an example for Play2 Java users. 
+
+If anyone want to start a Java version of the application, please go on!
+
 Links
 ====
 
