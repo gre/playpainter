@@ -283,7 +283,7 @@
     dirty_positions = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (var pid in players) { var player = players[pid];
-      if (!player || player.x===undefined) return;
+      if (!player || player.x===undefined) continue;
       ctx.beginPath();
       ctx.strokeStyle = player.color;
       ctx.arc(player.x, player.y, player.size/2, 0, 2*Math.PI);
