@@ -1,0 +1,101 @@
+html {
+    height: 100%;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  color: #666;
+
+  background: #8adc92;
+  background: #000 -webkit-gradient(linear, left bottom, right top, from(#B3E862), to(#73dac1));
+  background: #000 -moz-linear-gradient(left bottom, #B3E862, #73dac1);
+  background: #000 gradient(linear, left bottom, right top, from(#B3E862), to(#73dac1));
+  background-repeat: no-repeat;
+}
+
+a {
+    color: #555;
+    &:hover {
+        color: #333;
+    }
+}
+
+#error {
+  position: fixed;
+  z-index: 99999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  text-align: center;
+  padding-top: 10%;
+}
+
+.error {
+  padding: 1px 8px;
+  background-color: #f00;
+  color: #fff;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+  border-radius: 8px;
+  font-size: 1.4em;
+  font-weight: bold;
+}
+
+#viewport {
+    width: 500px;
+    height: 300px;
+    background: white;
+    position: relative;
+    canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+}
+
+#positions {
+  z-index: 8;
+}
+#me {
+  z-index: 6;
+}
+#draws {
+  z-index: 4;
+}
+
+.playername {
+    position: absolute;
+    right: 20px;
+    z-index: 20;
+    .name, .remove {
+      padding: 1px 3px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    .name {
+      background: black;
+      color: white;
+      cursor: pointer;
+      &:hover {
+        text-decoration: underline;
+      background: #333;
+      }
+    }
+}
+
+#wrapper {
+    margin: 0px 20px;
+}
+
+#main {
+    margin: 20px auto;
+    width: 500px;
+}
+
+footer {
+    text-align: center;
+    padding: 10px 0;
+}
