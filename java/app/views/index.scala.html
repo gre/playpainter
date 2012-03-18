@@ -1,0 +1,28 @@
+@(env: PaintRoom)
+
+@main(env.name) {
+
+<div id="error" style="display: none">
+  <noscript>
+    <span class="error">Javascript is not enabled.</span>
+  </noscript>
+</div>
+
+
+<div class="playername">
+  <span id="pname" class="name">your name</span> 
+</div>
+
+<div id="main">
+ <div id="viewport">
+   <canvas id="me" width="500" height="300"></canvas>
+	  <canvas id="positions" width="500" height="300"></canvas>
+	  <canvas id="draws" width="500" height="300"></canvas>
+  </div>
+  <div>
+	  <canvas id="controls" width="500" height="50"></canvas>
+  </div>
+</div>
+
+  <script type="text/javascript" src="@routes.Assets.at("javascripts/main.js")"></script>
+}
