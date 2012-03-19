@@ -144,7 +144,7 @@
         ctx.lineWidth = player.size;
         ctx.beginPath();
         var points = m.points;
-        ctx.moveTo(player.x, player.y);
+        points[0] && ctx.moveTo(points[0].x, points[0].y);
         points.forEach(function (p) {
           ctx.lineTo(p.x, p.y);
         });
@@ -260,11 +260,12 @@
     lineTo(position.x, position.y);
     addPoint(position.x, position.y);
     sendPoints();
-    //ctx.clearRect(0, 0, canvas.width, canvas.height);
     pressed = false;
   }
 
-  viewport.addEventListener(isMobile ? "touchstart": "mousedown", onMouseDown);
+
+
+  document.addEventListener(isMobile ? "touchstart": "mousedown", onMouseDown);
   document.addEventListener(isMobile ? "touchend"  : "mouseup",   onMouseUp);
   viewport.addEventListener(isMobile ? "touchmove" : "mousemove", onMouseMove);
 
