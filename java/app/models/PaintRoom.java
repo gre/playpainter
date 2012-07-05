@@ -14,10 +14,9 @@ public class PaintRoom {
 	
 	public String name;
     // The list of all connected painters (identified by ids)
-    public Map<Integer, Painter> painters = new HashMap<Integer, Painter>();
-
-    public int counter = 0;
-    public int connections = 0;
+    public Map<Integer, Painter> painters = new HashMap<Integer, Painter>(); // FIXME not thread safe, use ConcurrentMap
+    public int counter = 0; // FIXME not thread safe, use AtomicInteger
+    public int connections = 0; // FIXME not thread safe, use AtomicInteger
 
 	public PaintRoom(String name) {
 		this.name = name;
