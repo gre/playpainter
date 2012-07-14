@@ -9,23 +9,25 @@ import play.mvc.WebSocket;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PaintRoom {
 	
 	public String name;
     // The list of all connected painters (identified by ids)
-    public Map<Integer, Painter> painters = new HashMap<Integer, Painter>(); // FIXME not thread safe, use ConcurrentMap
-    public int counter = 0; // FIXME not thread safe, use AtomicInteger
-    public int connections = 0; // FIXME not thread safe, use AtomicInteger
+    public Map<Integer, Painter> painters = new ConcurrentHashMap<Integer, models.Painter>();
+    public AtomicInteger counter = new AtomicInteger(0);
+    public AtomicInteger connections = new AtomicInteger(0);
 
 	public PaintRoom(String name) {
 		this.name = name;
 	}
 
     public void createPainter(final WebSocket.In<JsonNode> in, final WebSocket.Out<JsonNode> out) {
-        counter++;
-        connections++;
-        final int pid = counter; // the painter id
+        counter.incrementAndGet();
+        connections.incrementAndGet();
+        final int pid = counter.intValue(); // the painter id
 
         // in: handle messages from the painter
         in.onMessage(new F.Callback<JsonNode>() {
@@ -67,7 +69,7 @@ public class PaintRoom {
             @Override
             public void invoke() throws Throwable {
                 painters.remove(pid);
-                connections--;
+                connections.decrementAndGet();
 
                 ObjectNode json = Json.newObject();
                 json.put("type", "disconnect");
