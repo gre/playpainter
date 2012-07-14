@@ -3,9 +3,8 @@
 Scala/Java version
 ==================
 
-For the moment, we only have the Scala version but I would love to have a Java version as an example for Play2 Java users. 
-
-If anyone want to start a Java version of the application, please go on!
+* The original version has been made in Scala ( scala/ directory )
+* Big thanks to @dbathily for the Java version! ( java/ directory )
 
 Links
 ====
@@ -13,6 +12,7 @@ Links
 * I've bootstraped it in 30 minutes: http://youtu.be/NHEbm-WEbRw
 * Test it on http://greweb.fr:9090/
 * React on http://blog.greweb.fr/?p=1191
+* This article explains improvments made since the video version: http://blog.greweb.fr/2012/03/play-painter-how-ive-improved-the-30-minutes-prototyped-version/
 
 License
 =======
