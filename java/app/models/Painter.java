@@ -1,7 +1,7 @@
 package models;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.Json;
 import play.mvc.WebSocket;
 
@@ -25,11 +25,11 @@ public class Painter {
 
     public void updateFromJson(JsonNode json) {
         if(json.has("name"))
-            this.name = json.get("name").getTextValue();
+            this.name = json.get("name").textValue();
         if(json.has("color"))
-            this.color = json.get("color").getTextValue();
+            this.color = json.get("color").textValue();
         if(json.has("size"))
-            this.size = json.get("size").getLongValue();
+            this.size = json.get("size").longValue();
     }
     
     public JsonNode toJson() {

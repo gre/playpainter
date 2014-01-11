@@ -1,7 +1,7 @@
 package models;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.Logger;
 import play.libs.F;
 import play.libs.Json;
@@ -33,7 +33,7 @@ public class PaintRoom {
         in.onMessage(new F.Callback<JsonNode>() {
             @Override
             public void invoke(JsonNode json) throws Throwable {
-                String type = json.get("type").getTextValue();
+                String type = json.get("type").textValue();
 
                 // The painter wants to change some of his property
                 if("change".equals(type)) {
