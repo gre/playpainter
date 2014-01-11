@@ -1,7 +1,7 @@
 package controllers;
 
 import models.PaintRoom;
-import org.codehaus.jackson.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.WebSocket;
